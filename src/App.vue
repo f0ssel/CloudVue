@@ -11,5 +11,12 @@ export default {
 </script>
 
 <style>
-.top-buffer { margin-top:20px; }
+.vertical-buffer-20 {
+  margin-top:20px;
+  margin-bottom:20px;
+}
+.vertical-buffer-10 {
+  margin-top:10px;
+  margin-bottom:10px;
+}
 </style>

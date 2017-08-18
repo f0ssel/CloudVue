@@ -1,6 +1,6 @@
 <template>
   <div class="home">
-    <div class="row top-buffer">
+    <div class="row vertical-buffer-20">
       <div class="col-3">
         <div class="row">
           <div class="col">
@@ -29,21 +29,61 @@
             <b-card no-block>
               <b-tabs small card ref="tabs" v-model="tabIndex">
                 <b-tab title="Stack">
-                  <div v-if="stack.Resources.length > 0">
-                    <b-card v-for="resource in stack.Resources">
-                      <div class="row" slot="header">
+                  <div v-if="stack.Resources.length > 0" class="row">
+                    <div class="col">
+                      <div class="row vertical-buffer-10" v-for="(resource, index) in stack.Resources">
                         <div class="col">
-                          {{resource.Name}}
-                        </div>
-                        <div class="col text-right">
-                          <a v-bind:href="resource.Documentation">Docs</a>
+                          <b-card>
+                            <div class="row" slot="header">
+                              <div class="col">
+                                {{resource.Name}}
+                              </div>
+                              <div class="col text-right">
+                                <b-dropdown size="sm" right>
+                                  <b-dropdown-item v-bind:href="resource.Documentation" target="_blank">Documentation</b-dropdown-item>
+                                  <b-dropdown-item v-on:click="stack.Resources.splice(index, 1)">Remove</b-dropdown-item>
+                                </b-dropdown>
+                              </div>
+                            </div>
+                            <div class="row">
+                              <div class="col">
+                                <b-form-fieldset v-bind:state="(resource.LogicalId === '') ? 'danger': null">
+                                  <b-input-group>
+                                    <b-input-group-addon class="col-3" left>Logical ID</b-input-group-addon>
+                                    <b-form-input v-model="resource.LogicalId"></b-form-input>
+                                  </b-input-group>
+                                </b-form-fieldset>
+                              </div>
+                            </div>
+                            <div class="row vertical-buffer-10" v-for="(property, propertyName) in resource.Properties">
+                              <div class="col">
+                                <b-form-fieldset v-bind:state="propertyState(property)">
+                                  <b-input-group>
+                                    <b-input-group-addon class="col-3" left>{{propertyName}}</b-input-group-addon>
+                                    <b-form-input v-bind:state="propertyState(property)" v-model="property.value"></b-form-input>
+                                    <b-input-group-button right>
+                                      <b-button v-b-toggle="propertyName">...</b-button>
+                                    </b-input-group-button>
+                                  </b-input-group>
+                                </b-form-fieldset>
+                                <b-collapse v-bind:id="propertyName">
+                                  <b-card>
+                                    <div class="row" v-show="showDetail(detailName)" v-for="(detail, detailName) in property">
+                                      <div class="col-3 text-right">
+                                        {{detailName}} :
+                                      </div>
+                                      <div class="col-9">
+                                        {{detail}}
+                                      </div>
+                                    </div>
+                                  </b-card>
+                                </b-collapse>
+                              </div>
+                            </div>
+                          </b-card>
                         </div>
                       </div>
-                      <b-input-group left="Logical ID" right="*">
-                        <b-form-input v-model="resource.LogicalId"></b-form-input>
-                      </b-input-group>
-                      <!-- Loop Properties -->
-                    </b-card>
+                    </div>
                   </div>
                   <p v-else class="text-center">
                     There are no resources in the stack.
@@ -63,7 +103,6 @@
         </div>
       </div>
     </div>
-    <div class="top-buffer"></div>
   </div>
 </template>
 
@@ -143,7 +182,25 @@ export default {
     addResourceToStack: function (data) {
       data = JSON.parse(JSON.stringify(data))
       data.LogicalId = ''
+      for (let key in data.Properties) {
+        data.Properties[key].displayDetails = false
+        data.Properties[key].value = null
+      }
       this.stack.Resources.push(data)
+    },
+    showDetail: function (key) {
+      let blacklist = [
+        'Documentation',
+        'value'
+      ]
+      return (blacklist.indexOf(key) === -1)
+    },
+    propertyState: function (property) {
+      if (property.Required && (property.value === '' || property.value === null)) {
+        return 'danger'
+      } else {
+        return
+      }
     }
   }
 }
