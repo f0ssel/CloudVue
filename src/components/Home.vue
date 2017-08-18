@@ -5,14 +5,14 @@
         <div class="row">
           <div class="col">
             <b-list-group flush>
-              <div v-for="(group, groupName, index) in resourceGroups">
-                <b-list-group-item class="list-group-item-action" v-b-toggle="groupName" role="button">
-                  <h6>{{groupName}}</h6>
+              <div v-for="group in objectToSortedArray(resourceGroups, 'name', 'name')">
+                <b-list-group-item class="list-group-item-action" v-b-toggle="group.name" role="button">
+                  <h6>{{group.name}}</h6>
                 </b-list-group-item>
                 <b-list-group-item>
-                  <b-collapse v-bind:id="groupName">
+                  <b-collapse v-bind:id="group.name">
                     <b-list-group flush>
-                      <b-list-group-item class="list-group-item-action" v-on:click.native="addResourceToStack(resource)" role="button" v-for="resource in group.resources" :key="resource.Name">
+                      <b-list-group-item class="list-group-item-action" v-on:click.native="addResourceToStack(resource)" role="button" v-for="resource in sortArray(group.resources, 'Name')" :key="resource.Name">
                         {{resource.Name}}
                       </b-list-group-item>
                     </b-list-group>
@@ -50,9 +50,21 @@
                                 <b-form-fieldset v-bind:state="(resource.LogicalId === '') ? 'danger': null">
                                   <b-input-group>
                                     <b-input-group-addon class="col-3" left>Logical ID</b-input-group-addon>
-                                    <b-form-input v-model="resource.LogicalId"></b-form-input>
+                                    <b-form-input v-bind:state="(resource.LogicalId === '') ? 'danger': null" v-model="resource.LogicalId"></b-form-input>
+                                    <b-input-group-button right>
+                                      <b-button v-b-toggle="'logicalId'">...</b-button>
+                                    </b-input-group-button>
                                   </b-input-group>
                                 </b-form-fieldset>
+                                <b-collapse v-bind:id="'logicalId'">
+                                  <b-card no-block>
+                                    <div class="row">
+                                      <div class="col text-center">
+                                        This is <b>required</b> and must be <b>unique</b>.
+                                      </div>
+                                    </div>
+                                  </b-card>
+                                </b-collapse>
                               </div>
                             </div>
                             <div class="row vertical-buffer-10" v-for="(property, propertyName) in resource.Properties">
@@ -67,16 +79,20 @@
                                   </b-input-group>
                                 </b-form-fieldset>
                                 <b-collapse v-bind:id="propertyName">
-                                  <b-card>
-                                    <div class="row" v-show="showDetail(detailName)" v-for="(detail, detailName) in property">
-                                      <div class="col-3 text-right">
-                                        {{detailName}} :
-                                      </div>
-                                      <div class="col-9">
-                                        {{detail}}
-                                      </div>
-                                    </div>
-                                  </b-card>
+                                  <!-- <b-card no-block> -->
+                                    <b-list-group flush>
+                                      <b-list-group-item class="list-group-item" v-show="showDetail(detailName)" v-for="(detail, detailName) in property">
+                                        <!-- <div class="row"> -->
+                                          <div class="col-6 text-right">
+                                            {{detailName}} :
+                                          </div>
+                                          <div class="col-6">
+                                            {{detail}}
+                                          </div>
+                                        <!-- </div> -->
+                                      </b-list-group-item>
+                                    </b-list-group>
+                                  <!-- </b-card> -->
                                 </b-collapse>
                               </div>
                             </div>
@@ -91,10 +107,27 @@
                   </p>
                 </b-tab>
                 <b-tab title="Import Template">
-                  <b-form-input textarea v-model="templateField" placeholder="Paste template here..." ></b-form-input>
-                  <div class="text-center">
-                    <br>
-                    <b-btn v-on:click="importTemplate" variant="primary">Submit</b-btn>
+                  <div class="row">
+                    <div class="col vertical-buffer-10">
+                      <b-form-input textarea v-model="templateField" placeholder="Paste template here..." :rows="5"></b-form-input>
+                    </div>
+                  </div>
+                  <div class="row">
+                    <div class="col text-center vertical-buffer-10">
+                      <b-btn v-on:click="importTemplate" variant="primary">Import</b-btn>
+                    </div>
+                  </div>
+                </b-tab>
+                <b-tab title="Export Template">
+                  <div class="row">
+                    <div class="col text-center vertical-buffer-10">
+                      <b-btn v-on:click="exportTemplate" variant="primary">Export</b-btn>
+                    </div>
+                  </div>
+                  <div class="row">
+                    <div class="col vertical-buffer-10">
+                      <b-form-input textarea v-model="exportField" placeholder="Exported template will go here..." :rows="5"></b-form-input>
+                    </div>
                   </div>
                 </b-tab>
               </b-tabs>
@@ -111,9 +144,9 @@ export default {
   name: 'Home',
   data () {
     return {
-      resourceGroups: {},
+      resourceGroups: [],
       template: {
-        Description: null,
+        Description: '',
         Parameters: {},
         Mappings: {},
         Conditions: {},
@@ -121,7 +154,7 @@ export default {
         Outputs: {}
       },
       stack: {
-        Description: null,
+        Description: '',
         Parameters: [],
         Mappings: [],
         Conditions: [],
@@ -129,6 +162,7 @@ export default {
         Outputs: []
       },
       templateField: null,
+      exportField: null,
       tabIndex: 0
     }
   },
@@ -171,12 +205,38 @@ export default {
       if (Object.keys(data).length !== 6) {
         throw new Error('Template contains invalid keys')
       }
+      this.template = data
     },
     importTemplate: function () {
       try {
         this.validateTemplate()
       } catch (e) {
         return console.log(`Validation Error: ${e.message}`)
+      }
+      this.stack = {
+        Description: null,
+        Parameters: [],
+        Mappings: [],
+        Conditions: [],
+        Resources: [],
+        Outputs: []
+      }
+      for (let logicalId in this.template.Resources) {
+        let resource = this.template.Resources[logicalId]
+        let group = resource.Type.split('::')[1]
+        let index = -1
+        for (let i = 0; i < this.resourceGroups[group].resources.length; i++) {
+          if (this.resourceGroups[group].resources[i].Type === resource.Type) {
+            index = i
+          }
+        }
+        let resourceTemplate = JSON.parse(JSON.stringify(this.resourceGroups[group].resources[index]))
+        resourceTemplate.LogicalId = logicalId
+        for (let propertyName in resourceTemplate.Properties) {
+          let value = (propertyName in resource.Properties) ? JSON.stringify(resource.Properties[propertyName]) : ''
+          resourceTemplate.Properties[propertyName].value = value
+        }
+        this.stack.Resources.push(resourceTemplate)
       }
     },
     addResourceToStack: function (data) {
@@ -191,7 +251,8 @@ export default {
     showDetail: function (key) {
       let blacklist = [
         'Documentation',
-        'value'
+        'value',
+        'displayDetails'
       ]
       return (blacklist.indexOf(key) === -1)
     },
@@ -201,6 +262,58 @@ export default {
       } else {
         return
       }
+    },
+    exportTemplate: function () {
+      for (let index in this.stack.Resources) {
+        let resourceTemplate = JSON.parse(JSON.stringify(this.stack.Resources[index]))
+        let resource = {
+          Type: resourceTemplate.Type,
+          Properties: {}
+        }
+        for (let property in resourceTemplate.Properties) {
+          if (resourceTemplate.Properties[property].value) {
+            try {
+              resource.Properties[property] = JSON.parse(resourceTemplate.Properties[property].value)
+            } catch (e) {
+              resource.Properties[property] = resourceTemplate.Properties[property].value
+            }
+          }
+        }
+        this.template.Resources[resourceTemplate.LogicalId] = resource
+      }
+      this.exportField = JSON.stringify(this.template, null, 2)
+    },
+    objectToSortedArray: function (obj, keyName, sortKey) {
+      let arr = Object.keys(obj).map(function (key) {
+        obj[key][keyName] = key
+        return obj[key]
+      })
+      arr.sort(function (a, b) {
+        let aKey = a[sortKey].toUpperCase()
+        let bKey = b[sortKey].toUpperCase()
+        if (aKey < bKey) {
+          return -1
+        }
+        if (aKey > bKey) {
+          return 1
+        }
+        return 0
+      })
+      return arr
+    },
+    sortArray: function (arr, sortKey) {
+      arr.sort(function (a, b) {
+        let aKey = a[sortKey].toUpperCase()
+        let bKey = b[sortKey].toUpperCase()
+        if (aKey < bKey) {
+          return -1
+        }
+        if (aKey > bKey) {
+          return 1
+        }
+        return 0
+      })
+      return arr
     }
   }
 }
