@@ -1,6 +1,6 @@
 <template>
   <div class="home">
-    <div class="row">
+    <div class="row vertical-buffer-lg">
       <div class="col-3">
         <div class="row">
           <div class="col">
