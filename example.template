@@ -1,0 +1,29 @@
+{
+  "Description": null,
+  "Parameters": {},
+  "Mappings": {},
+  "Conditions": {},
+  "Resources": {
+    "ScalableTarget": {
+      "Type": "AWS::ApplicationAutoScaling::ScalableTarget",
+      "Properties": {
+        "MaxCapacity": "SomeValue",
+        "MinCapacity": {
+          "Ref": "MaxCapacity"
+        },
+        "ResourceId": {
+          "Fn::Join": ["/", ["service", {
+              "Ref": "Cluster"
+            },
+            {
+              "Fn::GetAtt": ["Service", "Name"]
+            }
+          ]]
+        },
+        "ScalableDimension": "ecs:service:DesiredCount",
+        "ServiceNamespace": "ecs"
+      }
+    }
+  },
+  "Outputs": {}
+}

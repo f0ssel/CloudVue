@@ -1,6 +1,6 @@
 <template>
   <div class="home">
-    <div class="row vertical-buffer-20">
+    <div class="row">
       <div class="col-3">
         <div class="row">
           <div class="col">
@@ -31,7 +31,7 @@
                 <b-tab title="Stack">
                   <div v-if="stack.Resources.length > 0" class="row">
                     <div class="col">
-                      <div class="row vertical-buffer-10" v-for="(resource, index) in stack.Resources">
+                      <div class="row" v-for="(resource, index) in stack.Resources">
                         <div class="col">
                           <b-card>
                             <div class="row" slot="header">
@@ -67,7 +67,7 @@
                                 </b-collapse>
                               </div>
                             </div>
-                            <div class="row vertical-buffer-10" v-for="(property, propertyName) in resource.Properties">
+                            <div class="row" v-for="(property, propertyName) in resource.Properties">
                               <div class="col">
                                 <b-form-fieldset v-bind:state="propertyState(property)">
                                   <b-input-group>
@@ -79,20 +79,16 @@
                                   </b-input-group>
                                 </b-form-fieldset>
                                 <b-collapse v-bind:id="propertyName">
-                                  <!-- <b-card no-block> -->
-                                    <b-list-group flush>
-                                      <b-list-group-item class="list-group-item" v-show="showDetail(detailName)" v-for="(detail, detailName) in property">
-                                        <!-- <div class="row"> -->
-                                          <div class="col-6 text-right">
-                                            {{detailName}} :
-                                          </div>
-                                          <div class="col-6">
-                                            {{detail}}
-                                          </div>
-                                        <!-- </div> -->
-                                      </b-list-group-item>
-                                    </b-list-group>
-                                  <!-- </b-card> -->
+                                  <b-list-group flush>
+                                    <b-list-group-item class="list-group-item" v-show="showDetail(detailName)" v-for="(detail, detailName) in property">
+                                      <div class="col-6 text-right">
+                                        {{detailName}} :
+                                      </div>
+                                      <div class="col-6">
+                                        {{detail}}
+                                      </div>
+                                    </b-list-group-item>
+                                  </b-list-group>
                                 </b-collapse>
                               </div>
                             </div>
@@ -108,24 +104,24 @@
                 </b-tab>
                 <b-tab title="Import Template">
                   <div class="row">
-                    <div class="col vertical-buffer-10">
+                    <div class="col ">
                       <b-form-input textarea v-model="templateField" placeholder="Paste template here..." :rows="5"></b-form-input>
                     </div>
                   </div>
                   <div class="row">
-                    <div class="col text-center vertical-buffer-10">
+                    <div class="col text-center ">
                       <b-btn v-on:click="importTemplate" variant="primary">Import</b-btn>
                     </div>
                   </div>
                 </b-tab>
                 <b-tab title="Export Template">
                   <div class="row">
-                    <div class="col text-center vertical-buffer-10">
+                    <div class="col text-center ">
                       <b-btn v-on:click="exportTemplate" variant="primary">Export</b-btn>
                     </div>
                   </div>
                   <div class="row">
-                    <div class="col vertical-buffer-10">
+                    <div class="col ">
                       <b-form-input textarea v-model="exportField" placeholder="Exported template will go here..." :rows="5"></b-form-input>
                     </div>
                   </div>
